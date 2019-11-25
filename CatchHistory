@@ -18,7 +18,7 @@ for ci = 6:numel(cata1)
     end
 end
 
-%% mark in the excel
+%% mark from the excel
 gtable = readcell('s1.xlsx','sheet','三九脑科医院（汇总）','Range','A3:A385');
 stable = readcell('s1.xlsx','sheet','上海德济医院（汇总））','Range','A4:A88');
 confirm = [];
