@@ -1,0 +1,62 @@
+targetway = 'Y:\BIDS_anat';
+cata1 = dir(targetway);
+subj_name = [];
+runcount1 = 0;
+hcount2 = 0;
+
+%% get the subject_name who has History.mat
+for ci = 6:numel(cata1)
+    if contains(cata1(ci).name,'1')
+        runcount1 = runcount1 + 1;
+        cata2 = dir(fullfile(targetway,cata1(ci).name));
+        for cj = 1:numel(cata2)
+           if contains(cata2(cj).name,'History') 
+              hcount2 = hcount2 + 1;
+              subj_name = [subj_name,{cata1(ci).name}]; 
+           end
+        end
+    end
+end
+
+%% mark in the excel
+gtable = readcell('s1.xlsx','sheet','三九脑科医院（汇总）','Range','A3:A385');
+stable = readcell('s1.xlsx','sheet','上海德济医院（汇总））','Range','A4:A88');
+confirm = [];
+for si = 1:numel(subj_name)
+    wheel = subj_name(si);
+    switch wheel(1)
+        case 'g'
+            for xi = 1:numel(gtable)      % gconfirm = marknum(gtable,wheel)
+                if gtable(xi) == wheel        
+                    gconfirm = [gconfirm, 1];
+                else
+                    gconfirm = [gconfirm, NaN];
+                end
+            end  
+        case 's'
+            for xii = 1:numel(stable)      % sconfirm = marknum(stable,wheel)
+                if stable(xii) == wheel
+                    sconfirm = [sconfirm, 1];
+                else
+                    sconfirm = [sconfirm, NaN];
+                end
+            end
+    end
+end
+
+%% write in the excel
+writematrix(gconfirm','s1.xlsx','sheet','三九脑科医院（汇总）','Range','M3:M385');
+writematrix(sconfirm','s1.xlsx','sheet','上海德济医院（汇总））','Range','T4:T88');
+
+%% function for the easy way
+function out = marknum(tablename,gear)
+out = [];
+for ti = 1:numel(tablename)
+    if tablename(ti) == gear
+        out = [out,1];
+    else 
+        out = [out,NaN];
+    end
+end
+out = out';
+end
