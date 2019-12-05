@@ -1,4 +1,4 @@
-targetway = 'Y:\BIDS_anat';
+targetway = '\\nas\share\BIDS_anat';
 cata1 = dir(targetway);
 subj_name = [];
 runcount1 = 0;
@@ -12,51 +12,47 @@ for ci = 6:numel(cata1)
         for cj = 1:numel(cata2)
            if contains(cata2(cj).name,'History') 
               hcount2 = hcount2 + 1;
-              subj_name = [subj_name,{cata1(ci).name}]; 
+              subj_name = [subj_name, string(cata1(ci).name)]; 
            end
         end
     end
 end
 
 %% mark from the excel
-gtable = readcell('s1.xlsx','sheet','三九脑科医院（汇总）','Range','A3:A385');
-stable = readcell('s1.xlsx','sheet','上海德济医院（汇总））','Range','A4:A88');
-confirm = [];
+gtable = readmatrix('S1.xlsx','sheet','三九脑科医院(汇总)','Range','A3:A414','OutputType','string');
+stable = readmatrix('S1.xlsx','sheet','上海德济医院(汇总)','Range','A4:A113','OutputType','string');
+
+g_name = [];
+s_name = [];
 for si = 1:numel(subj_name)
-    wheel = subj_name(si);
-    switch wheel(1)
-        case 'g'
-            for xi = 1:numel(gtable)      % gconfirm = marknum(gtable,wheel)
-                if gtable(xi) == wheel        
-                    gconfirm = [gconfirm, 1];
-                else
-                    gconfirm = [gconfirm, NaN];
-                end
-            end  
-        case 's'
-            for xii = 1:numel(stable)      % sconfirm = marknum(stable,wheel)
-                if stable(xii) == wheel
-                    sconfirm = [sconfirm, 1];
-                else
-                    sconfirm = [sconfirm, NaN];
-                end
-            end
+    firnum = split(subj_name(si),'_');
+    if firnum(1) == 'g'
+        g_name = [g_name,subj_name(si)];
+    else
+        s_name = [s_name,subj_name(si)];
+    end
+end
+
+gconfirm = NaN(1,412);
+sconfirm = NaN(1,110);
+for gi = 1:numel(gtable)         
+    for ni = 1:numel(g_name)      
+        if gtable(gi) == g_name(ni)        
+           gconfirm(gi) = 1;
+           break
+        end 
+    end
+end
+for si = 1:numel(stable)         
+    for nj = 1:numel(s_name)      
+        if stable(si) == s_name(nj)        
+           sconfirm(si) = 1;
+           break
+        end 
     end
 end
 
 %% write in the excel
-writematrix(gconfirm','s1.xlsx','sheet','三九脑科医院（汇总）','Range','M3:M385');
-writematrix(sconfirm','s1.xlsx','sheet','上海德济医院（汇总））','Range','T4:T88');
+writematrix(gconfirm','S1.xlsx','sheet','三九脑科医院(汇总)','Range','M3:M414');
+writematrix(sconfirm','S1.xlsx','sheet','上海德济医院(汇总)','Range','T4:T113');
 
-%% function for the easy way
-function out = marknum(tablename,gear)
-out = [];
-for ti = 1:numel(tablename)
-    if tablename(ti) == gear
-        out = [out,1];
-    else 
-        out = [out,NaN];
-    end
-end
-out = out';
-end
