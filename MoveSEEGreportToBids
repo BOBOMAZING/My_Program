@@ -1,0 +1,150 @@
+reportpath = 'D:\B_temporal\SEEGreport';
+targetpath = '\\nas\share\BIDS_anat';
+
+subid = readmatrix('S1.xlsx','sheet','三九脑科医院(汇总)','Range','A3:A413','OutputType','string');
+subname = readmatrix('S1.xlsx','sheet','三九脑科医院(汇总)','Range','C3:C413','OutputType','string');
+
+
+
+%% classify targetname
+targetid = dir(targetpath);
+
+cd(targetpath);
+id14 = dir('g*_14*');
+id15 = dir('g*_15*');
+id16 = dir('g*_16*');
+id17 = dir('g*_17*');
+id18 = dir('g*_18*');
+id19 = dir('g*_19*');
+
+allid = {id15,id16,id17,id18,id19};
+
+%% catch chiness name respectively
+name15 = []; name16 = []; name17 = []; name18 = []; name19 = [];
+count = 0;
+
+for i = 1:numel(allid)    
+    for ia = 1:numel(allid{1,i})
+        check = 0;
+        for sa = 1:numel(subid)
+            if strcmp(allid{1,i}(ia,1).name,subid(sa))                
+                switch i
+                    case 1
+                        name15 = [name15, subname(sa)];
+                    case 2
+                        name16 = [name16, subname(sa)];
+                    case 3
+                        name17 = [name17, subname(sa)];
+                    case 4
+                        name18 = [name18, subname(sa)];
+                    case 5
+                        name19 = [name19, subname(sa)];
+                end
+                check = 1;
+                break
+            end
+        end
+        if check == 0
+            count = count + 1;
+            formatSpec = '%d 找不到此中文名：%s \n';
+            fprintf(formatSpec,count,allid{1,i}(ia,1).name);
+        end   
+    end
+end
+
+name15 = name15'; name16 = name16'; name17 = name17'; name18 = name18'; name19 = name19';
+
+%% move file from local to BIDS
+allname = {name15,name16,name17,name18,name19};
+cd(reportpath);
+allreport = dir(reportpath);
+
+report15 = dir(fullfile(reportpath,allreport(3).name)); report16 = dir(fullfile(reportpath,allreport(4).name));
+report17 = dir(fullfile(reportpath,allreport(5).name)); report18 = dir(fullfile(reportpath,allreport(6).name));
+report19 = dir(fullfile(reportpath,allreport(7).name));
+
+savetxt = fopen('transfer_record.txt','w');
+
+for j = 1:numel(allname)
+    for ja = 1:numel(allname{1,j})
+        switch j
+            case 1             
+                for jb = 1:numel(report15)   
+                    check = reproduct(j,ja,jb,allname,report15,id15,allreport,reportpath,targetpath,savetxt);
+                    if check == 1 || check == 2
+                        break
+                    end
+                end                
+             case 2
+                 for jc = 1:numel(report16)
+                     check = reproduct(j,ja,jc,allname,report16,id16,allreport,reportpath,targetpath,savetxt);
+                     if check == 1 || check == 2  
+                        break
+                     end
+                 end
+            case 3
+                for jd = 1:numel(report17)
+                     check = reproduct(j,ja,jd,allname,report17,id17,allreport,reportpath,targetpath,savetxt);
+                     if check == 1 || check == 2 
+                        break
+                     end
+                end
+             case 4
+                for je = 1:numel(report18)
+                     check = reproduct(j,ja,je,allname,report18,id18,allreport,reportpath,targetpath,savetxt);
+                     if check == 1 || check == 2 
+                        break
+                     end
+                end
+              case 5
+                for jf = 1:numel(report19)
+                     check = reproduct(j,ja,jf,allname,report19,id19,allreport,reportpath,targetpath,savetxt);
+                     if check == 1 || check == 2 
+                        break
+                     end
+                 end
+                
+         end
+         if check == 0
+            fprintf(savetxt,'%d 找不到SEEG报告：%s ————0 \n',ja,allname{1,j}(ja,1));
+         end            
+    end
+end
+
+fclose(savetxt);
+
+function out = reproduct(h1,h2,r1,homelist,reportlist,idlist,totalreport,reporthome,targethome,savefile)
+
+ if strcmp(homelist{1,h1}(h2,1),reportlist(r1).name)
+     workpath = fullfile(reporthome,totalreport(h1+2).name,reportlist(r1).name);
+     cd(workpath);
+     convertfile = dir('*EEG*pdf');
+     formatname = strcat(idlist(h2).name,'_SEEGreport','.pdf');
+     root = fullfile(workpath,convertfile.name);
+     target = fullfile(targethome,idlist(h2).name,formatname);
+     if isfile(target)
+         out = 2;
+         fprintf(savefile,'%d SEEG报告已存在：%s \n',h2,homelist{1,h1}(h2,1));        
+     elseif ~isfile(root)
+         out = 2;     %% 多个符合文件情况待处理 ！！！
+         fprintf(savefile,'%d 存在多个SEEG报告：%s————m \n',h2,homelist{1,h1}(h2,1));       
+     else
+        copyfile(root,target); 
+        out = 1;
+        fprintf(savefile,'%d 成功复制SEEG报告：%s \n',h2,homelist{1,h1}(h2,1)); 
+     end
+ else
+     out = 0;
+ end
+end
+ 
+% if strcmp(allname{1,j}(ja,1),report15(jb).name)
+%     root = fullfile(reportpath,allreport(j+2).name,report15(jb).name);
+%     cd(root);
+%     convertfile = dir('*EEG*pdf');
+%     formatname = strcat(id15(ja).name,'_SEEGreport','.pdf');
+%     target = fullfile(targetpath,id15(ja).name,formatname);
+%     copyfile(fullfile(root,convertfile.name),target);
+%     check2 = 1;
+%     break
+% end
