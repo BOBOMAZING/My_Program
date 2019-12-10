@@ -1,0 +1,75 @@
+# author: Bowie time: 2019/12/3
+
+import os
+import sys
+from win32com.client import Dispatch, constants, gencache
+from win32com import client
+import time
+
+
+def word2pdf_v1(wordpath, pdfpath):   # RPC unavailable
+    gencache.EnsureModule('{00020905-0000-0000-C000-000000000046}', 0, 8, 4)
+    # 开始转换
+    w = Dispatch("Word.Application")
+    doc = w.Documents.Open(wordpath, ReadOnly=1)
+    doc.ExportAsFixedFormat(pdfpath, constants.wdExportFormatPDF,
+                            Item=constants.wdExportDocumentWithMarkup,
+                            CreateBookmarks=constants.wdExportCreateHeadingBookmarks)
+    # time.sleep(5)
+    w.Quit(constants.wdDoNotSaveChanges)
+
+
+def word2pdf_v2(wordpath, pdfpath):    # well done!
+    word = client.DispatchEx("Word.Application")
+    worddocx = word.Documents.Open(wordpath, ReadOnly=1)
+    worddocx.SaveAs(pdfpath, FileFormat=17)
+    worddocx.Close()
+    word.Quit()
+
+
+targetpath = r'D:\B_temporal\SEEGreport'
+
+# catch needed wordpath
+c1 = 0
+wnlist = []
+
+for dirpath, dirnames, filenames in os.walk(targetpath):
+    for f in filenames:
+        if 'SEEG报告合并' in f:
+            wordname = os.path.join(dirpath, f)
+            wnlist.append(wordname)
+
+mes1 = f'成功抓取SEEG报告{len(wnlist)}个\n'
+print(mes1, wnlist)
+
+# catch needed pdfpath & execute word2pdf
+c2 = 0
+c3 = 0
+pnlist = []
+for item in wnlist:
+    if 'docx' in item:
+        if os.path.exists(item):
+            if '~$' not in item:
+                pitem = item.replace('docx', 'pdf')
+                if os.path.exists(pitem):
+                    os.remove(pitem)
+                word2pdf_v2(item, pitem)
+                c2 += 1
+                pnlist.append(pitem)
+                print(c2, pitem)
+    elif 'doc' in item:
+        if os.path.exists(item):
+            if '~$' not in item:
+                pitem = item.replace('docx', 'pdf')
+                if os.path.exists(pitem):
+                    os.remove(pitem)
+                word2pdf_v2(item, pitem)
+                c3 += 1
+                pnlist.append(pitem)
+                print(c3, pitem)
+    else:
+        print(f'未转换文件{item}')
+
+mes2 = f'成功改名docx文件{c2}个\n'
+mes3 = f'成功改名doc文件{c3}个\n'
+print(mes2, mes3, pnlist)
