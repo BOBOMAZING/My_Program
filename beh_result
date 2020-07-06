@@ -1,0 +1,294 @@
+%% explore data
+clear
+eeglab('nogui');
+
+subjs = {'g_chenhuizhen_180320','g_chenweijie_180321','g_huangjianming_180316','g_laixiaoqin_180801',...
+           'g_lanshufen_181116','g_liuchengbin_171018','g_ruanzhongjie_180810','g_wendan_180521',...
+           'g_zhouhui_180904','g_zhuxiongqi_180427','s_dengguorong_180526','s_heshaohang_190717',...
+           's_huangyaru_190322','s_miaoyu_181108','s_minxing_190801','s_sunjing_180510','s_wuyulin_190711',...
+           's_yangshun_180105','s_yezi_180602','s_yuchaohao_180303','s_zhanghuilan_190627'};
+path =  'D:/A_WMtask/A_Result';
+runnum1 = ['0','0','1','0','0','2'];
+runnum2 = ['0','0','0','1','0','0','2'];
+
+%% calculate accuracy of all subjects
+for i = 1 :numel(subjs)
+    sta_sum(i).subj_name = subjs(i);
+    allbeh(i).subj_name = subjs(i);
+    targetpath = dir(fullfile(path,subjs{i},'ieeg','ses-1'));
+   
+    subcorrate = [];
+    eff0 = [];eff1 = [];eff2 = [];eff3 = [];
+    
+    for j = 3:length(targetpath)
+        if contains(targetpath(j).name,'behaviour')
+            datapath1 = fullfile(path,subjs{i},'ieeg','ses-1',[subjs{i},'_ses-1','_run-',runnum1(j),'_task-main_behaviour.mat']);        
+            load(datapath1); 
+       
+            % collect behavioral record
+            if j == 3
+               allbeh(i).run2 = record;
+               allbeh(i).run2 = NaN;
+            elseif j == 6
+               allbeh(i).run2 = record;
+            end
+
+            efftri0 = 0;efftri1 = 0;efftri2 = 0;efftri3 = 0;
+            tricon0 = 0; tricon1 = 0; tricon2 = 0;tricon3 = 0;
+
+            for ti = 1:length(record)  
+                switch record{1,ti}.condi 
+                    case 0
+                        tricon0 = tricon0 + 1;
+                        if record{1,ti}.hit == 1
+                           efftri0 = efftri0 + 1;
+                        end
+                    case 1
+                         tricon1 = tricon1 + 1;
+                         if record{1,ti}.hit == 1
+                            efftri1 = efftri1 + 1;
+                         end
+                    case 2
+                         tricon2 = tricon2+ 1;
+                         if record{1,ti}.hit == 1
+                            efftri2 = efftri2 + 1;
+                         end
+                    case 3
+                         tricon3 = tricon3 + 1;
+                         if record{1,ti}.hit == 1
+                            efftri3 = efftri3 + 1;
+                         end
+                end
+            end
+            eff0 = [eff0,(efftri0/tricon0)]; eff1 = [eff1,(efftri1/tricon1)]; eff2 = [eff2,(efftri2/tricon2)]; eff3 = [eff3,(efftri3/tricon3)];
+            efftri = efftri0 + efftri1 + efftri2 + efftri3;
+            subcorrate = [subcorrate,efftri/ti];
+
+        end
+    end
+
+ sta_sum(i).corrate = mean(subcorrate);   
+ sta_sum(i).eff0 = mean(eff0);
+ sta_sum(i).eff1 = mean(eff1);
+ sta_sum(i).eff2 = mean(eff2);
+ sta_sum(i).eff3 = mean(eff3);
+ 
+
+end
+
+all_subj_acc1 = mean([sta_sum.corrate]); %average from subjects
+%all_subj_acc2 = (allefftri0 + allefftri1 + allefftri2 + allefftri3)/ (280*allses); % average from trials
+con0acc = mean([sta_sum.eff0]);
+con1acc = mean([sta_sum.eff1]);
+con2acc = mean([sta_sum.eff2]);
+con3acc = mean([sta_sum.eff3]);
+
+%plot linear graph
+y1 = cat(1,[sta_sum.eff0],[sta_sum.eff1],[sta_sum.eff2],[sta_sum.eff3]);
+plot(y1,'-o','MarkerIndices',[1 2 3 4],'MarkerSize',3,'MarkerFaceColor','k','MarkerEdgeColor','k')
+xlim([0.7 4.3]);ylim([0.47 1.03]);
+xticks([1 2 3 4]);xticklabels({'0','1','2','1+2'});  
+yticks([0.5 0.6 0.7 0.8 0.9 1]); yticklabels({'50%','60%','70%','80%','90%','100%'});
+title('Accuracy of 21 Subjects'); xlabel('Cue Type');ylabel('Accuracy');
+
+%difference between one item and two item
+p1 = anova1(y1');
+% ranovatbl = ranova(y1');
+
+%difference between first and second item
+[h,p2] = ttest([sta_sum.eff3],[sta_sum.eff2]);
+
+% plot bar graph
+y2 = [mean([sta_sum.eff0]),mean([sta_sum.eff1]),mean([sta_sum.eff2]),mean([sta_sum.eff3])];
+errstd = [std([sta_sum.eff0]),std([sta_sum.eff1]),std([sta_sum.eff2]),std([sta_sum.eff3])];
+bar(y2);
+hold on
+e = errorbar(y2,errstd,'ok'); %e.Color = 'm';
+xlim([0 5]);ylim([0.47 1.03]);
+yticks([0.5 0.6 0.7 0.8 0.9 1]); yticklabels({'50%','60%','70%','80%','90%','100%'});
+xticks([1 2 3 4]); xticklabels({'0','1','2','1+2',});
+title('Accuracy of Different Conditions'); xlabel('Cue Type');ylabel('Accuracy');
+sigstar({[3,4],[4,2],[2,3]},[0.05,nan,nan]);
+
+%% catch trigger labels
+for ri = 1:numel(subjs)
+    targetpath = dir(fullfile(path,subjs{ri},'ieeg','ses-1'));
+    trigger(ri).subj_name = subjs{ri};
+    
+    for rj = 4:length(targetpath)
+        if contains(targetpath(rj).name,"edf")
+            cfg.datapath2 = fullfile(path,subjs{ri},'ieeg','ses-1',[subjs{ri},'_ses-1','_run-',runnum2(rj),'_task-main_ieeg.edf']);
+            EEG = pop_biosig(cfg.datapath2);
+            EEG = eeg_checkset( EEG );
+            for ni = 1:numel(EEG.chanlocs)
+                EEG.chanlocs(ni).labels = strrep(strrep(strrep(strrep( EEG.chanlocs(ni).labels,'EEG ',''),'POL ',''),'-Ref',''),'`','');  % a repetitiive operation to replace stranger words with space
+            end
+            subtrigger = transf_mark(EEG);
+
+            if rj == 4
+                trigger(ri).run2 = subtrigger;
+                trigger(ri).run2 = NaN;
+            elseif rj == 7
+                trigger(ri).run2 = subtrigger;
+            end           
+        end 
+        
+    end
+end
+
+%% extract trial information from triggr 
+% when it turns to run2,just change the number
+for si = 1:length(trigger)
+    count_cue = 0;
+    trimark(si).subj = trigger(si).subj_name;
+    
+    if length(trigger(si).run2) > 168
+        for sj = 1:length(trigger(si).run2)
+            switch trigger(si).run2(sj).type
+                case '5'
+                    count_cue = count_cue + 1;
+                    check = sj;
+                    trimark(si).run2(count_cue).tritype = 'fhhf';
+                case '6'
+                    count_cue = count_cue + 1;
+                    check = sj;
+                    trimark(si).run2(count_cue).tritype = 'hh';
+                case '2'
+                    count_cue = count_cue + 1;
+                    check = sj;
+                    trimark(si).run2(count_cue).tritype = 'ff';
+                case '7'
+                    if sj - check == 2
+                        testdot = trigger(si).run2(sj).latency;
+                    end
+                case '8'
+                    if count_cue > 0
+                        if sj - check == 3
+                            trimark(si).run2(count_cue).acttype = 'correct';   
+                            actdot = trigger(si).run2(sj).latency;
+                            trimark(si).run2(count_cue).rts = (actdot - testdot)./2000;
+                        end
+                    end
+                case '9'
+                    if count_cue > 0
+                        if sj - check == 3
+                           trimark(si).run2(count_cue).acttype = 'incorrect'; 
+                           actdot = trigger(si).run2(sj).latency;
+                           trimark(si).run2(count_cue).rts = (actdot - testdot)./2000; 
+                        end
+                    end
+            end  %switch 
+        end  %2 for 
+    else
+        trimark(si).run2 = [num2str(length(trigger(si).run2)),'-lack'];
+    end  %if
+end  
+
+%% add trial information to allbeh struct and check missing trimark(trigger)
+load('beh_data.mat')
+
+for ai = 1:length(allbeh)
+    warn1 = []; warn2 = []; warn3 = []; warn4 = []; warn5 = [];
+    if length(allbeh(ai).run2) == length(trimark(ai).run2)
+        for aj = 1:length(allbeh(ai).run2)
+            if ~isfield(allbeh(ai).run2{1,aj},'key')
+                warn3 = [warn3,aj];
+                warnlist2(ai).warnkey = warn3;
+                if allbeh(ai).run2{1,aj}.hit == 1
+                   allbeh(ai).run2{1,aj}.key = 'Correct';
+                elseif allbeh(ai).run2{1,aj}.hit == 0
+                    allbeh(ai).run2{1,aj}.key = 'Incorrect';
+                end
+            end
+            if ~isempty (trimark(ai).run2(aj).acttype)
+                if strcmpi(allbeh(ai).run2{1,aj}.key,trimark(ai).run2(aj).acttype)
+                    if ~isempty(trimark(ai).run2(aj).tritype) 
+                        allbeh(ai).run2{1,aj}.tritype = trimark(ai).run2(aj).tritype;
+                    else
+                        warn5 = [warn5,aj];
+                        warnlist2(ai).notritype = warn5;
+                    end
+                    if ~isempty(trimark(ai).run2(aj).rts) 
+                        allbeh(ai).run2{1,aj}.t_response = trimark(ai).run2(aj).rts;
+                    else
+                        warn2 = [warn2,aj];
+                        warnlist2(ai).nort = warn2; 
+                    end
+                else
+                    warn1 = [warn1,aj];
+                    warnlist2(ai).warnacttype = warn1;
+                    if isempty(trimark(ai).run2(aj).rts)
+                       warn2 = [warn2,aj];
+                       warnlist2(ai).nort = warn2; 
+                    end
+                end
+            else
+                warn4 = [warn4,aj];
+                warnlist2(ai).noacttype = warn4;
+                if ~isempty(trimark(ai).run2(aj).rts) 
+                    allbeh(ai).run2{1,aj}.t_response = trimark(ai).run2(aj).rts;
+                else
+                    warn2 = [warn2,aj];
+                    warnlist2(ai).nort = warn2; 
+                end
+                if ~isempty (trimark(ai).run2(aj).tritype)
+                    allbeh(ai).run2{1,aj}.tritype = trimark(ai).run2(aj).tritype;
+                else
+                    warn5 =  [warn5,aj];
+                    warnlist2(ai).notritype = warn5;
+                end
+            end
+        end
+    else
+        if ~iscell(allbeh(ai).run2)
+           warnlist2(ai).noacttype = NaN;
+           warnlist2(ai).nort = NaN;
+           warnlist2(ai).notritype = NaN; 
+        else            
+            warnlist2(ai).noacttype = ['not match/t-b/',num2str(length(trimark(ai).run2)-length(allbeh(ai).run2))];
+            warnlist2(ai).nort = ['not match/t-b/',num2str(length(trimark(ai).run2)-length(allbeh(ai).run2))];
+            warnlist2(ai).notritype = ['not match/t-b/',num2str(length(trimark(ai).run2)-length(allbeh(ai).run2))];
+        end   
+    end
+end
+  
+%% classifly tritype
+%classifly trial
+for ci = 1:length(allbeh)
+    if length(allbeh(ci).run2) == length(trimark(ci).run2)
+        count_fh = 0; count_hf = 0; count_hh = 0; count_ff = 0; count_mis = 0; 
+        for cj = 1:length(allbeh(ci).run2)
+            if isfield(allbeh(ci).run2{1,cj},'tritype')
+                switch allbeh(ci).run2{1,cj}.tritype
+                    case 'fhhf'
+                        if allbeh(ci).run2{1,cj}.face_first == 1
+                            count_fh = count_fh + 1;
+                            allbeh(ci).run2{1,cj}.tritype = 'fh';
+                        else
+                            count_hf = count_hf + 1;
+                            allbeh(ci).run2{1,cj}.tritype = 'hf';
+                        end
+                    case 'hh'
+                        count_hh = count_hh + 1;
+                    case 'ff'
+                        count_ff = count_ff + 1;
+                end
+            else
+                count_mis = count_mis + 1;
+            end          
+        end
+        count_total = count_fh + count_hf + count_hh + count_ff + count_mis;
+        trilist(ci).run2.fh = count_fh;
+        trilist(ci).run2.hf = count_hf;
+        trilist(ci).run2.hh = count_hh;
+        trilist(ci).run2.ff = count_ff;
+        trilist(ci).run2.miss = count_mis;
+        trilist(ci).run2.total = count_total;
+        
+    elseif ~iscell(allbeh(ci).run2)
+        trilist(ci).run2 = NaN;
+    else
+        trilist(ci).run2 = 'not match';
+    end
+    
+end
